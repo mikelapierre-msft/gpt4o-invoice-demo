@@ -1,0 +1,25 @@
+﻿{
+  "type": "object",
+  "properties": {
+    "Facture": {
+      "type": "object",
+      "properties": {
+        "NoFacture": { "type": "integer" },
+        "Date": { "type": "string" },
+        "NoBonCommande": { "type": "string" },
+        "MontantTotal": { "type": "number" },
+        "MontantDu": { "type": "number" }
+      },
+      "additionalProperties": false,
+      "required": [
+        "NoFacture",
+        "Date",
+        "NoBonCommande",
+        "MontantTotal",
+        "MontantDu"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [ "Facture" ]
+}
