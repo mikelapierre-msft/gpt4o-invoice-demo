@@ -4,19 +4,49 @@
     "Facture": {
       "type": "object",
       "properties": {
+        "NomFournisseur": { "type": "string" },
+        "AdresseFournisseur": { "type": "string" },
+        "NoBonCommande": { "type": "string" },
         "NoFacture": { "type": "integer" },
         "Date": { "type": "string" },
-        "NoBonCommande": { "type": "string" },
+        "SousTotal": { "type": "number" },
+        "TPS": { "type": "number" },
+        "TVQ": { "type": "number" },
         "MontantTotal": { "type": "number" },
-        "MontantDu": { "type": "number" }
+        "Lignes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Quantite": { "type": "number" },
+              "CodeArticle": { "type": "string" },
+              "Description": { "type": "string" },
+              "PrixUnitaire": { "type": "number" },
+              "Montant": { "type": "number" }
+            },
+            "additionalProperties": false,
+            "required": [
+              "Quantite",
+              "CodeArticle",
+              "Description",
+              "PrixUnitaire",
+              "Montant"
+            ]
+          }
+        }
       },
       "additionalProperties": false,
       "required": [
+        "NomFournisseur",
+        "AdresseFournisseur",
+        "NoBonCommande",
         "NoFacture",
         "Date",
-        "NoBonCommande",
+        "SousTotal",
+        "TPS",
+        "TVQ",
         "MontantTotal",
-        "MontantDu"
+        "Lignes"
       ]
     }
   },
