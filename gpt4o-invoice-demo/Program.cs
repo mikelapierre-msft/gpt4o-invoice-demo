@@ -4,9 +4,7 @@ using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
 using SkiaSharp;
 using System.ClientModel;
-using System.Data.SqlTypes;
 using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
 
 var builder = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -14,20 +12,26 @@ var builder = new ConfigurationBuilder()
 var config = builder.Build();
 
 var pageCount = new List<int>();
+int overallInputTokens = 0;
+int overallOutputTokens = 0;
+int overallTokens = 0;
+int overallDocs = 0;
+int overallPages = 0;
 
 using (var streamWriter = new StreamWriter("output.json"))
 {
-    int i = 0;
     streamWriter.AutoFlush = true;
-    streamWriter.WriteLine("[");
+    streamWriter.WriteLine("{ \"data\": [");
     foreach (var file in Directory.GetFiles(config["SourceFolder"], "*.pdf"))
-    {        
+    {
+        overallDocs++;
         var sourceFile = file;
         Console.WriteLine($"Analyzing {Path.GetFileName(sourceFile)}...");
 
         //pageCount.Add(await CheckNumberOfPages(sourceFile));
 
         var files = await ConvertPdfToPngsUnaltered(sourceFile);
+        overallPages += files.Count;
         var result = await ExecuteLLMPromptPageByPageAsync(files);
 
         //var convertedFile = await ConvertPdfToPngBestRectangle(sourceFile);
@@ -40,11 +44,12 @@ using (var streamWriter = new StreamWriter("output.json"))
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
         Console.WriteLine(prettyJson);
-        streamWriter.WriteLine(prettyJson + ",");
+        if (overallDocs > 1) streamWriter.WriteLine(",");
+        streamWriter.WriteLine(prettyJson);
     }
-    streamWriter.WriteLine("]");
+    streamWriter.WriteLine($"], \"stats\": {{ \"documents\": {overallDocs}, \"pages\": {overallPages}, \"inputTokens\": {overallInputTokens}, \"outputTokens\": {overallOutputTokens}, \"totalTokens\": {overallTokens} }} }}");
 
-    Console.WriteLine($"Average pages per doc: {pageCount.Sum()/pageCount.Count()}; Max pages per doc {pageCount.Max()}");
+    //Console.WriteLine($"Average pages per doc: {pageCount.Sum()/pageCount.Count()}; Max pages per doc {pageCount.Max()}");
 }
 Console.ReadLine();
 
@@ -135,6 +140,9 @@ async Task<string> ExecuteLLMPromptPageByPageAsync(List<BinaryData> pages)
         totalInputTokens += completion.Value.Usage.InputTokenCount;
         totalOutputTokens += completion.Value.Usage.OutputTokenCount;
         totalTokens += completion.Value.Usage.TotalTokenCount;
+        overallInputTokens += completion.Value.Usage.InputTokenCount;
+        overallOutputTokens += completion.Value.Usage.OutputTokenCount;
+        overallTokens += completion.Value.Usage.TotalTokenCount;
         Console.WriteLine($"Single page - Input tokens: {completion.Value.Usage.InputTokenCount}, Output tokens: {completion.Value.Usage.OutputTokenCount}, Total tokens: {completion.Value.Usage.TotalTokenCount}");
         previousResponse = completion.Value.Content[0].Text;
     }
