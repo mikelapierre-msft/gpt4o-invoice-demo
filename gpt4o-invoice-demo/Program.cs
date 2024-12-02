@@ -3,6 +3,7 @@ using gpt4o_invoice_demo;
 using Microsoft.Extensions.Configuration;
 using SkiaSharp;
 using System.ClientModel;
+using System.Diagnostics;
 using System.Text.Json;
 
 var builder = new ConfigurationBuilder()
@@ -19,17 +20,23 @@ using (var streamWriter = new StreamWriter(outputFile))
 {
     streamWriter.AutoFlush = true;
     streamWriter.WriteLine("{ \"data\": [");
-    foreach (var file in Directory.GetFiles(config["SourceFolder"], "*.pdf").Take(1))
+    foreach (var file in Directory.GetFiles(config["SourceFolder"], "*.pdf"))
     {
         var sourceFile = file;
         Console.WriteLine($"Analyzing {Path.GetFileName(sourceFile)}...");
-       
+
+        var watch = Stopwatch.StartNew();
+
         //// Use Document Intelligence
         //var result = await documentIntelligence.ExecuteAsync(sourceFile, stats);
 
-        // Use Azure Open AI
+        //// Use Azure Open AI
         var files = await ConvertPdfToPngs(sourceFile);
         var result = await azureOpenAI.ExecuteLLMPromptPageByPageAsync(files, stats);
+
+        watch.Stop();
+        stats.OverallDuration += watch.Elapsed;
+        Console.WriteLine($"Duration: {watch.ElapsedMilliseconds}ms");
 
         stats.OverallDocuments++;
         var jsonResult = JsonSerializer.Deserialize<JsonElement>(result);

@@ -7,5 +7,6 @@
         public int OverallInputTokens { get; set; }
         public int OverallOutputTokens { get; set; }
         public int OverallTokens { get; set; }
+        public TimeSpan OverallDuration { get; set; }
     }
 }
