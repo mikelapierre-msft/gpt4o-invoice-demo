@@ -33,7 +33,7 @@ namespace gpt4o_invoice_demo
             {
                 var userMessages = new UserChatMessage();
                 userMessages.Content.Add(ChatMessageContentPart.CreateImagePart(page, "image/png", ChatImageDetailLevel.High));
-                userMessages.Content.Add(ChatMessageContentPart.CreateTextPart("Extraire les informations suivantes de la facture au format json: Fournisseur, Adresse du fournisseur, Numero de bon de commande, Numero de facture, Date, Sous total, Taxes sur les produits et services (TPS), Taxe de vente provinciale (TVQ), Montant total. Pour chacune des lignes de la facture, extraire les informations suivantes: Quantité, Code de l'article, Description, Prix unitaire, Montant."));
+                userMessages.Content.Add(ChatMessageContentPart.CreateTextPart("Extraire les informations suivantes de la facture au format json: Fournisseur, Adresse du fournisseur, Numero de bon de commande, Numero de facture, Date (utiliser le format YYYY-MM-DD), Sous total, Taxes sur les produits et services (TPS), Taxe de vente provinciale (TVQ), Montant total. Pour chacune des lignes de la facture, extraire les informations suivantes: Quantité, Code de l'article, Description, Prix unitaire, Montant."));
                 if (previousResponse != null)
                 {
                     userMessages.Content.Add(ChatMessageContentPart.CreateTextPart($"Voici les informations extraites des pages analysées auparavant: {previousResponse}"));
