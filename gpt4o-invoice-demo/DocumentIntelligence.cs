@@ -29,74 +29,49 @@ namespace gpt4o_invoice_demo
         {
             var facturesJson = new ArrayList();
             var j = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(inputFile));
-            var docs = j.GetProperty("data"); //.EnumerateArray();
+            var docs = j.GetProperty("data");
             foreach (var docArray in docs.EnumerateArray())
             {
                 foreach (var doc in docArray.EnumerateArray())
                 {
-                    var nomfourn = (string)null;
-                    var addrfourn = (string)null;
-                    var noboncomm = (string)null;
-                    var nofact = (string)null;
-                    var date = (string)null;
-                    var soustot = (decimal?)null;
-                    var tps = (decimal?)null;
-                    var tvq = (decimal?)null;
-                    var tot = (decimal?)null;
-
                     var fields = doc.GetProperty("Fields");
-                    if (fields.TryGetProperty("VendorName", out var nomfournJson))
-                        nomfourn = nomfournJson.GetProperty("ValueString").GetString();
-                    if (fields.TryGetProperty("VendorAddress", out var addrfournJson))
-                        addrfourn = addrfournJson.GetProperty("Content").GetString();
-                    if (fields.TryGetProperty("PurchaseOrder", out var noboncommJson))
-                        noboncomm = noboncommJson.GetProperty("ValueString").GetString();
-                    if (fields.TryGetProperty("InvoiceId", out var nofactJson))
-                        nofact = nofactJson.GetProperty("ValueString").GetString();
-                    if (fields.TryGetProperty("InvoiceDate", out var dateJson))
-                        date = dateJson.GetProperty("ValueDate").GetString();
-                    if (fields.TryGetProperty("SubTotal", out var soustotJson))
-                        soustot = soustotJson.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
-                    if (fields.TryGetProperty("TaxDetails", out var taxDetailsJson))
-                    {
-                        foreach (var taxDetails in taxDetailsJson.GetProperty("ValueList").EnumerateArray())
-                        {
-                            if (taxDetails.GetProperty("Content").GetString().Contains("P", StringComparison.OrdinalIgnoreCase) && taxDetails.TryGetProperty("ValueDictionary", out var vdTPS) && vdTPS.TryGetProperty("Amount", out var amtTPS))
-                                tps = amtTPS.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
-                            if (taxDetails.GetProperty("Content").GetString().Contains("V", StringComparison.OrdinalIgnoreCase) && taxDetails.TryGetProperty("ValueDictionary", out var vdTVQ) && vdTVQ.TryGetProperty("Amount", out var amtTVQ))
-                                tvq = amtTVQ.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
-                        }
-                    }
-                    if (fields.TryGetProperty("InvoiceTotal", out var totJson))
-                        tot = totJson.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
+
+                    var nomFournisseur = GetPropertyIfExists(fields, "VendorName", "ValueString")?.GetString();
+                    var adresseFournisseur = GetPropertyIfExists(fields, "VendorAddress", "Content")?.GetString();
+                    var noBonCommande = GetPropertyIfExists(fields, "PurchaseOrder", "ValueString")?.GetString();
+                    var noFacture = GetPropertyIfExists(fields, "InvoiceId", "ValueString")?.GetString();
+                    var date = GetPropertyIfExists(fields, "InvoiceDate", "ValueDate")?.GetString();
+                    var sousTotal = GetPropertyIfExists(fields, "SubTotal", "ValueCurrency", "Amount")?.GetDecimal();
+                    var taxes = GetPropertyIfExists(fields, "TaxDetails", "ValueList")?.EnumerateArray();
+                    var tps = GetPropertyIfExists(taxes?.FirstOrDefault(t => ContentContains(t, "P")), "ValueDictionary", "Amount", "ValueCurrency", "Amount");
+                    var tvq = GetPropertyIfExists(taxes?.FirstOrDefault(t => ContentContains(t, "V")), "ValueDictionary", "Amount", "ValueCurrency", "Amount");
+                    var montantTotal = GetPropertyIfExists(fields, "InvoiceTotal", "ValueCurrency", "Amount")?.GetDecimal();
 
                     var lignes = new ArrayList();
-                    if (fields.TryGetProperty("Items", out var itemsJson))
+                    var items = GetPropertyIfExists(fields, "Items", "ValueList")?.EnumerateArray();
+                    if (items != null)
                     {
-                        foreach (var item in itemsJson.GetProperty("ValueList").EnumerateArray())
+                        foreach (var item in items)
                         {
-                            var quant = (double?)null;
-                            var code = (string)null;
-                            var desc = (string)null;
-                            var prix = (decimal?)null;
-                            var mont = (decimal?)null;
-
-                            if (item.TryGetProperty("ValueDictionary", out var vdQuant) && vdQuant.TryGetProperty("Quantity", out var quantJson))
-                                quant = quantJson.GetProperty("ValueDouble").GetDouble();
-                            if (item.TryGetProperty("ValueDictionary", out var vdCode) && vdCode.TryGetProperty("ProductCode", out var codeJson))
-                                code = codeJson.GetProperty("ValueString").GetString();
-                            if (item.TryGetProperty("ValueDictionary", out var vdDesc) && vdDesc.TryGetProperty("Description", out var descJson))
-                                desc = descJson.GetProperty("ValueString").GetString();
-                            if (item.TryGetProperty("ValueDictionary", out var vdPrix) && vdPrix.TryGetProperty("UnitPrice", out var prixJson))
-                                prix = prixJson.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
-                            if (item.TryGetProperty("ValueDictionary", out var vdMont) && vdMont.TryGetProperty("Amount", out var montJson))
-                                mont = montJson.GetProperty("ValueCurrency").GetProperty("Amount").GetDecimal();
-
-                            lignes.Add(new { Quantite = quant, CodeArticle = code, Description = desc, PrixUnitaire = prix, Montant = mont });
+                            var quantite = GetPropertyIfExists(item, "ValueDictionary", "Quantity", "ValueDouble")?.GetDouble();
+                            var codeArticle = GetPropertyIfExists(item, "ValueDictionary", "ProductCode", "ValueString")?.GetString();
+                            var description = GetPropertyIfExists(item, "ValueDictionary", "Description", "ValueString")?.GetString();
+                            var prixUnitaire = GetPropertyIfExists(item, "ValueDictionary", "UnitPrice", "ValueCurrency", "Amount")?.GetDecimal();
+                            var montant = GetPropertyIfExists(item, "ValueDictionary", "Amount", "ValueCurrency", "Amount")?.GetDecimal();
+                            lignes.Add(new { Quantite = quantite, CodeArticle = codeArticle, Description = description, PrixUnitaire = prixUnitaire, Montant = montant });
                         }
                     }
 
-                    facturesJson.Add(new { Facture = new { NomFournisseur = nomfourn, AdresseFournisseur = addrfourn, NoBonCommande = noboncomm, NoFacture = nofact, Date = date, SousTotal = soustot, TPS = tps, TVQ = tvq, MontantTotal = tot, Lignes = lignes } });
+                    facturesJson.Add(new { Facture = new { NomFournisseur = nomFournisseur, 
+                                                           AdresseFournisseur = adresseFournisseur, 
+                                                           NoBonCommande = noBonCommande, 
+                                                           NoFacture = noFacture, 
+                                                           Date = date, 
+                                                           SousTotal = sousTotal, 
+                                                           TPS = tps, 
+                                                           TVQ = tvq,
+                                                           MontantTotal = montantTotal, 
+                                                           Lignes = lignes } });
                 }
             }
             var finalJson = new { data = facturesJson };
@@ -105,6 +80,31 @@ namespace gpt4o_invoice_demo
                 WriteIndented = true,
                 Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             }));
+        }
+
+        private static JsonElement? GetPropertyIfExists(JsonElement? element, params string[] properties)
+        {
+            if (element == null || element.Value.Equals(default(JsonElement))) return null;
+
+            for (int i=0; i< properties.Length; i++)
+            {
+                var property = properties[i];
+                if (element.Value.TryGetProperty(property, out var jsonValue))
+                {
+                    if (i == properties.Length - 1) return jsonValue;
+                    else element = jsonValue;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private static bool ContentContains(JsonElement element, string value)
+        {
+            return (GetPropertyIfExists(element, "Content")?.GetString() ?? String.Empty).Contains(value, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
